@@ -11,7 +11,7 @@ import sys
 session = requests.Session()
 
 repository_url = 'https://api.github.com/repositories'
-search_url = 'https://api.github.com/search/repositories?q=user:%s+repo:%s+%s'
+repo_url = 'https://api.github.com/repos/%s/%s'
 
 def request_to_github(url):
     print('requesting %s...' % url)
@@ -20,10 +20,9 @@ def request_to_github(url):
         r = session.get(url, auth=(user, password))
         print('rate-limit: %s' % r.headers['X-RateLimit-Remaining'])
         if r.headers['X-RateLimit-Remaining'] == "0":
-            print('lololol Github screws you')
             timediff = time() - request_to_github.time
-            print(timediff)
-            sleep(60-timediff)
+            print('LOLOLOL Github screws you, wait %f seconds' % timediff)
+            sleep(3601-timediff)
             request_to_github.time = time()
             r = None
     return r
@@ -55,19 +54,15 @@ def get_all(url, total=float('inf')):
             yield elem
             counter += 1
 
-def get_repo(full_name):
-    user, repo = full_name.split('/')
-    search = request_to_github(search_url % (user, repo, repo)).json()
-    for r in search['items']:
-        if r['full_name'] == full_name:
-            return r
-    return None
+def get_repo(repo):
+    user, repo = repo['full_name'].split('/')
+    return request_to_github(repo_url % (user, repo)).json()
 
 def get_forks(repo):
-    return get_repo(repo['full_name'])['forks_count']
+    return repo['forks_count']
 
 def get_stargazers(repo):
-    return get_repo(repo['full_name'])['stargazers_count']
+    return repo['stargazers_count']
 
 def get_contributors(repo):
     return len(list(get_all(repo['contributors_url'])))
@@ -92,8 +87,9 @@ if __name__ == '__main__':
     DATRESULT = defaultdict(lambda: [0,0])
     for repo in tqdm(get_all(repository_url, n)):
         if not repo['fork']:
-            nforks = get_forks(repo)
-            nstars = get_stargazers(repo)
+            full_repo = get_repo(repo)
+            nforks = get_forks(full_repo)
+            nstars = get_stargazers(full_repo)
             ncontrib = get_contributors(repo)
             languages = get_languages(repo)
             magic = magic_formula(nforks, nstars, ncontrib)
