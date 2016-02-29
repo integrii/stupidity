@@ -1,6 +1,7 @@
 import requests
 import json
 from time import sleep
+from collections import defaultdict
 from config import user, password
 
 session = requests.Session()
@@ -61,12 +62,18 @@ def get_contributors(repo):
 
 def get_languages(repo):
     languages = list(get_all(repo['languages_url']))
-    return languages
+    total = sum([x[1] for x in languages])
+    return {l: n/total for l, n in languages}
 
 def magic_formula(f, s, c):
     return 100 * (f - c)/s
 
+def pretty_print(res):
+    for lang, data in res.items():
+        print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
+
 if __name__ == '__main__':
+    DATRESULT = defaultdict(lambda: [0,0])
     for repo in get_all(repository_url, 1):
         if not repo['fork']:
             nforks = get_forks(repo)
@@ -74,4 +81,8 @@ if __name__ == '__main__':
             ncontrib = get_contributors(repo)
             languages = get_languages(repo)
             magic = magic_formula(nforks, nstars, ncontrib)
+            for lang, ratio in languages.items():
+                DATRESULT[lang][0] += magic * ratio
+                DATRESULT[lang][1] += 1
+    pretty_print(DATRESULT)
 
