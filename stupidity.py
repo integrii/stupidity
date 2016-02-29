@@ -7,7 +7,7 @@ from collections import defaultdict
 from config import user, password
 import sys
 
-# requests_cache.install_cache()
+requests_cache.install_cache()
 session = requests.Session()
 
 repository_url = 'https://api.github.com/repositories'
@@ -87,15 +87,20 @@ if __name__ == '__main__':
     DATRESULT = defaultdict(lambda: [0,0])
     for repo in tqdm(get_all(repository_url, n)):
         if not repo['fork']:
-            full_repo = get_repo(repo)
-            nforks = get_forks(full_repo)
-            nstars = get_stargazers(full_repo)
-            ncontrib = get_contributors(repo)
-            languages = get_languages(repo)
-            magic = magic_formula(nforks, nstars, ncontrib)
-            if magic >= 0:
-                for lang, ratio in languages.items():
-                    DATRESULT[lang][0] = (DATRESULT[lang][0] * DATRESULT[lang][1] + magic * ratio) / (DATRESULT[lang][1] + 1)
-                    DATRESULT[lang][1] += 1
+            try:
+                full_repo = get_repo(repo)
+                nforks = get_forks(full_repo)
+                nstars = get_stargazers(full_repo)
+                ncontrib = get_contributors(repo)
+                languages = get_languages(repo)
+                magic = magic_formula(nforks, nstars, ncontrib)
+                if magic >= 0:
+                    for lang, ratio in languages.items():
+                        DATRESULT[lang][0] = (DATRESULT[lang][0] * DATRESULT[lang][1] + magic * ratio) / (DATRESULT[lang][1] + 1)
+                        DATRESULT[lang][1] += 1
+            except KeyError:
+                pass
+            except json.decoder.JSONDecodeError:
+                pass
     pretty_print(DATRESULT)
 
