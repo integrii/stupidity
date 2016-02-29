@@ -56,15 +56,22 @@ def get_forks(repo):
 def get_stargazers(repo):
     return get_repo(repo['full_name'])['stargazers_count']
 
+def get_contributors(repo):
+    return len(list(get_all(repo['contributors_url'])))
+
 def get_languages(repo):
     languages = list(get_all(repo['languages_url']))
     return languages
 
+def magic_formula(f, s, c):
+    return 100 * (f - c)/s
+
 if __name__ == '__main__':
     for repo in get_all(repository_url, 1):
         if not repo['fork']:
-            print(get_forks(repo))
-            print(get_stargazers(repo))
-            print(get_languages(repo))
-            pass
+            nforks = get_forks(repo)
+            nstars = get_stargazers(repo)
+            ncontrib = get_contributors(repo)
+            languages = get_languages(repo)
+            magic = magic_formula(nforks, nstars, ncontrib)
 
