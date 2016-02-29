@@ -1,13 +1,15 @@
 import requests
+import requests_cache
 import json
 from time import sleep
 from collections import defaultdict
 from config import user, password
 
+requests_cache.install_cache()
 session = requests.Session()
 
 repository_url = 'https://api.github.com/repositories'
-search_url = 'https://api.github.com/search/repositories?q=user:%s+repo:%s'
+search_url = 'https://api.github.com/search/repositories?q=user:%s+repo:%s+%s'
 
 def request_to_github(url):
     print('requesting %s...' % url)
@@ -45,7 +47,7 @@ def get_all(url, total=float('inf')):
 
 def get_repo(full_name):
     user, repo = full_name.split('/')
-    search = request_to_github(search_url % (user, repo)).json()
+    search = request_to_github(search_url % (user, repo, repo)).json()
     for r in search['items']:
         if r['full_name'] == full_name:
             return r
@@ -74,7 +76,7 @@ def pretty_print(res):
 
 if __name__ == '__main__':
     DATRESULT = defaultdict(lambda: [0,0])
-    for repo in get_all(repository_url, 1):
+    for repo in get_all(repository_url, 100):
         if not repo['fork']:
             nforks = get_forks(repo)
             nstars = get_stargazers(repo)
@@ -82,7 +84,7 @@ if __name__ == '__main__':
             languages = get_languages(repo)
             magic = magic_formula(nforks, nstars, ncontrib)
             for lang, ratio in languages.items():
-                DATRESULT[lang][0] += magic * ratio
+                DATRESULT[lang][0] = (DATRESULT[lang][0] * DATRESULT[lang][1] + magic * ratio) / (DATRESULT[lang][1] + 1)
                 DATRESULT[lang][1] += 1
     pretty_print(DATRESULT)
 
