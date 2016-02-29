@@ -14,6 +14,7 @@ search_url = 'https://api.github.com/search/repositories?q=user:%s+repo:%s+%s'
 def request_to_github(url):
     print('requesting %s...' % url)
     r = session.get(url, auth=(user, password))
+    print('rate-limit: %s' % r.headers['X-RateLimit-Remaining'])
     if r.headers['X-RateLimit-Remaining'] == 0:
         print('lololol Github screws you')
         sleep(3600)
