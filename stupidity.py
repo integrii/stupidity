@@ -50,26 +50,26 @@ def request_to_github(url):
             r = None
     return r
 
-def get_all(url, total=float('inf'), beg=0):
-    """ yield ´total´ elements + progression from ´url´ beginning at ´beg+1´ element, abstracting paging"""
-    next_url = url
+def get_all(url, total=float('inf'), last=-1):
+    """ yield ´total´ elements + progression from ´url´ beginning at ´last+1´ element, abstracting paging"""
     counter = 0
     # while there is a next page and #elems is < total
-    while (next_url != None and counter < total):
-        r = request_to_github(next_url)
-        # check if next page
-        if 'next' in r.links and 'url' in r.links['next']:
-            next_url = r.links['next']['url']
-        else:
-            next_url = None
+    while (url != None and counter < total):
+        r = request_to_github(url)
         # yield every elem of page and increase #elems
         res = r.json()
         for elem in iter_seq(res):
             if counter >= total:
                 break
-            if counter > beg:
+            if counter > last:
                 yield elem, counter, url
             counter += 1
+        # check if next page
+        if 'next' in r.links and 'url' in r.links['next']:
+            url = r.links['next']['url']
+            counter = 0
+        else:
+            url = None
 
 def get_all_repo(total=float('inf')):
     """ yield ´total´ repos reading cache before (to know progression) and updating cache """
@@ -79,7 +79,7 @@ def get_all_repo(total=float('inf')):
         counter = data['counter']
     except:
         url = repository_url
-        counter = 0
+        counter = -1
     for repo, counter, url in get_all(url, total, counter):
         yield repo
         write_progression(counter, url)
