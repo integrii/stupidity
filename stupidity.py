@@ -6,6 +6,7 @@ from config import user, password
 session = requests.Session()
 
 repository_url = 'https://api.github.com/repositories'
+search_url = 'https://api.github.com/search/repositories?q=user:%s+repo:%s'
 
 def request_to_github(url):
     print('requesting %s...' % url)
@@ -15,6 +16,12 @@ def request_to_github(url):
         sleep(3600)
         r = session.get(url, auth=(user, password))
     return r
+
+def iter_seq(iterable):
+    if isinstance(iterable, list):
+        return iterable
+    elif isinstance(iterable, dict):
+        return list(iterable.items())
 
 def get_all(url, total=float('inf')):
     counter = 0
@@ -29,30 +36,35 @@ def get_all(url, total=float('inf')):
             next_url = None
         # yield every elem of page and increase #elems
         res = r.json()
-        for elem in res:
+        for elem in iter_seq(res):
             if counter >= total:
                 break
             yield elem
             counter += 1
 
+def get_repo(full_name):
+    user, repo = full_name.split('/')
+    search = request_to_github(search_url % (user, repo)).json()
+    for r in search['items']:
+        if r['full_name'] == full_name:
+            return r
+    return None
+
 def get_forks(repo):
-    ret = []
-    forks = get_all(repo['forks_url'])
-    for repo in forks:
-        ret.append(repo)
-        ret.extend(get_forks(repo))
-    return ret
+    return get_repo(repo['full_name'])['forks_count']
 
 def get_stargazers(repo):
-    return list(get_all(repo['stargazers_url']))
+    return get_repo(repo['full_name'])['stargazers_count']
 
+def get_languages(repo):
+    languages = list(get_all(repo['languages_url']))
+    return languages
 
 if __name__ == '__main__':
     for repo in get_all(repository_url, 1):
         if not repo['fork']:
-            # forks = get_forks(repo)
-            # print(len(forks))
-            stargazers = get_stargazers(repo)
-            print(len(stargazers))
+            print(get_forks(repo))
+            print(get_stargazers(repo))
+            print(get_languages(repo))
             pass
 
