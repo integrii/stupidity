@@ -20,7 +20,7 @@ def get_all(url, total=float('inf')):
     counter = 0
     next_url = url
     # while there is a next page and #elems is < total
-    while (next_url != None and counter <= total ):
+    while (next_url != None and counter < total):
         r = request_to_github(next_url)
         # check if next page
         if 'next' in r.links and 'url' in r.links['next']:
@@ -29,9 +29,11 @@ def get_all(url, total=float('inf')):
             next_url = None
         # yield every elem of page and increase #elems
         res = r.json()
-        counter += len(res)
         for elem in res:
+            if counter >= total:
+                break
             yield elem
+            counter += 1
 
 def get_forks(repo):
     ret = []
@@ -41,10 +43,16 @@ def get_forks(repo):
         ret.extend(get_forks(repo))
     return ret
 
+def get_stargazers(repo):
+    return list(get_all(repo['stargazers_url']))
+
+
 if __name__ == '__main__':
-    for repo in get_all(repository_url, 100):
+    for repo in get_all(repository_url, 1):
         if not repo['fork']:
-            forks = get_forks(repo)
-            print(len(forks))
-            break
+            # forks = get_forks(repo)
+            # print(len(forks))
+            stargazers = get_stargazers(repo)
+            print(len(stargazers))
+            pass
 
