@@ -1,17 +1,40 @@
 import requests
-import requests_cache
 from tqdm import tqdm
 import json
-from time import sleep, time
+from time import sleep
 from collections import defaultdict
 from config import user, password
 import sys
 
-requests_cache.install_cache()
 session = requests.Session()
 
 repository_url = 'https://api.github.com/repositories'
 repo_url = 'https://api.github.com/repos/%s/%s'
+cache_file = 'cache.json'
+
+
+def write_progression(id, url):
+    with open(cache_file, 'w') as f:
+        # if cache exists
+        try:
+            data = read_cache()
+        except:
+            data = {}
+        data['id'] = id
+        data['url'] = url
+        json.dump(data, f)
+
+def write_result(result):
+    with open(cache_file, 'w') as f:
+        try:
+            data = read_cache()
+        except:
+            data = {}
+        data['result'] = result
+        json.dump(data, f)
+
+def read_cache():
+    return json.load(open(cache_file))
 
 def request_to_github(url):
     print('requesting %s...' % url)
@@ -20,14 +43,10 @@ def request_to_github(url):
         r = session.get(url, auth=(user, password))
         print('rate-limit: %s' % r.headers['X-RateLimit-Remaining'])
         if r.headers['X-RateLimit-Remaining'] == "0":
-            timediff = time() - request_to_github.time
-            print('LOLOLOL Github screws you, wait %f seconds' % timediff)
-            sleep(3601-timediff)
-            request_to_github.time = time()
+            print('LOLOLOL Github screws you')
+            sleep(60)
             r = None
     return r
-
-request_to_github.time = time()
 
 def iter_seq(iterable):
     if isinstance(iterable, list):
@@ -80,7 +99,7 @@ def pretty_print(res):
         if data[1] >= 5:
             print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
 
-def magic_repo(DATRESULT, repo):
+def magic_repo(res, repo):
     full_repo = get_repo(repo)
     nforks = get_forks(full_repo)
     nstars = get_stargazers(full_repo)
@@ -89,8 +108,8 @@ def magic_repo(DATRESULT, repo):
     magic = magic_formula(nforks, nstars, ncontrib)
     if magic >= 0:
         for lang, ratio in languages.items():
-            DATRESULT[lang][0] = (DATRESULT[lang][0] * DATRESULT[lang][1] + magic * ratio) / (DATRESULT[lang][1] + 1)
-            DATRESULT[lang][1] += 1
+            res[lang][0] = (res[lang][0] * res[lang][1] + magic * ratio) / (res[lang][1] + 1)
+            res[lang][1] += 1
 
 
 if __name__ == '__main__':
@@ -98,7 +117,10 @@ if __name__ == '__main__':
         n = int(sys.argv[1])
     except ValueError:
         print('Usage: %s <number of repos>' % argv[0])
-    DATRESULT = defaultdict(lambda: [0,0])
+    try:
+        DATRESULT = defaultdict(lambda: [0,0], read_cache()['result'])
+    except:
+        DATRESULT = defaultdict(lambda: [0,0])
     for repo in tqdm(get_all(repository_url, n)):
         if not repo['fork']:
             try:
@@ -109,5 +131,6 @@ if __name__ == '__main__':
                 pass
             except ZeroDivisionError:
                 pass
+            write_result(DATRESULT)
     pretty_print(DATRESULT)
 
