@@ -64,14 +64,16 @@ def get_all(url, total=float('inf'), last=-1, total_counter=0):
                 break
             if counter > last:
                 total_counter += 1
+                last += 1
                 yield elem, counter, url, total_counter
             counter += 1
         # check if next page
         if 'next' in r.links and 'url' in r.links['next']:
             url = r.links['next']['url']
-            counter = 0
         else:
             url = None
+        counter = 0
+        last = -1
 
 def get_all_repo(total=float('inf')):
     """ yield ´total´ repos reading cache before (to know progression) and updating cache """
