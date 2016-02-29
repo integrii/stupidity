@@ -5,6 +5,7 @@ import json
 from time import sleep, time
 from collections import defaultdict
 from config import user, password
+import sys
 
 # requests_cache.install_cache()
 session = requests.Session()
@@ -84,8 +85,12 @@ def pretty_print(res):
         print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
 
 if __name__ == '__main__':
+    try:
+        n = int(sys.argv[1])
+    except ValueError:
+        print('Usage: %s <number of repos>' % argv[0])
     DATRESULT = defaultdict(lambda: [0,0])
-    for repo in tqdm(get_all(repository_url, 1000)):
+    for repo in tqdm(get_all(repository_url, n)):
         if not repo['fork']:
             nforks = get_forks(repo)
             nstars = get_stargazers(repo)
