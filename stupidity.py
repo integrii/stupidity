@@ -13,7 +13,7 @@ repo_url = 'https://api.github.com/repos/%s/%s'
 cache_file = 'cache.json'
 
 # CACHING
-def write_progression(counter, url):
+def write_progression(counter, url, total_counter):
     # if cache exists
     try:
         data = read_cache()
@@ -21,6 +21,7 @@ def write_progression(counter, url):
         data = {}
     data['counter'] = counter
     data['url'] = url
+    data['total_counter'] = total_counter
     with open(cache_file, 'w') as f:
         json.dump(data, f)
 
@@ -50,19 +51,20 @@ def request_to_github(url):
             r = None
     return r
 
-def get_all(url, total=float('inf'), last=-1):
+def get_all(url, total=float('inf'), last=-1, total_counter=0):
     """ yield ´total´ elements + progression from ´url´ beginning at ´last+1´ element, abstracting paging"""
     counter = 0
     # while there is a next page and #elems is < total
-    while (url != None and counter < total):
+    while (url != None and total_counter < total):
         r = request_to_github(url)
         # yield every elem of page and increase #elems
         res = r.json()
         for elem in iter_seq(res):
-            if counter >= total:
+            if total_counter >= total:
                 break
             if counter > last:
-                yield elem, counter, url
+                total_counter += 1
+                yield elem, counter, url, total_counter
             counter += 1
         # check if next page
         if 'next' in r.links and 'url' in r.links['next']:
@@ -77,16 +79,18 @@ def get_all_repo(total=float('inf')):
         data = read_cache()
         url = data['url']
         counter = data['counter']
+        total_counter = data['total_counter']
     except:
         url = repository_url
         counter = -1
-    for repo, counter, url in get_all(url, total, counter):
+        total_counter = 0
+    for repo, counter, url, total_counter in get_all(url, total, counter, total_counter):
         yield repo
-        write_progression(counter, url)
+        write_progression(counter, url, total_counter)
 
 def get_all_elem(url):
     """ yield only elements of ´url´ discarding progression """
-    for repo, counter, url in get_all(url):
+    for repo, counter, url, total_counter in get_all(url):
         yield repo
 
 def get_full_repo(repo):
