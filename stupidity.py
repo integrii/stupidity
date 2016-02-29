@@ -79,6 +79,19 @@ def pretty_print(res):
     for lang, data in res.items():
         print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
 
+def magic_repo(DATRESULT, repo):
+    full_repo = get_repo(repo)
+    nforks = get_forks(full_repo)
+    nstars = get_stargazers(full_repo)
+    ncontrib = get_contributors(repo)
+    languages = get_languages(repo)
+    magic = magic_formula(nforks, nstars, ncontrib)
+    if magic >= 0:
+        for lang, ratio in languages.items():
+            DATRESULT[lang][0] = (DATRESULT[lang][0] * DATRESULT[lang][1] + magic * ratio) / (DATRESULT[lang][1] + 1)
+            DATRESULT[lang][1] += 1
+
+
 if __name__ == '__main__':
     try:
         n = int(sys.argv[1])
@@ -88,16 +101,7 @@ if __name__ == '__main__':
     for repo in tqdm(get_all(repository_url, n)):
         if not repo['fork']:
             try:
-                full_repo = get_repo(repo)
-                nforks = get_forks(full_repo)
-                nstars = get_stargazers(full_repo)
-                ncontrib = get_contributors(repo)
-                languages = get_languages(repo)
-                magic = magic_formula(nforks, nstars, ncontrib)
-                if magic >= 0:
-                    for lang, ratio in languages.items():
-                        DATRESULT[lang][0] = (DATRESULT[lang][0] * DATRESULT[lang][1] + magic * ratio) / (DATRESULT[lang][1] + 1)
-                        DATRESULT[lang][1] += 1
+                magic_repo(DATRESULT, repo)
             except KeyError:
                 pass
             except json.decoder.JSONDecodeError:
