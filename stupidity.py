@@ -77,7 +77,8 @@ def magic_formula(f, s, c):
 
 def pretty_print(res):
     for lang, data in res.items():
-        print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
+        if data[1] >= 5:
+            print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
 
 def magic_repo(DATRESULT, repo):
     full_repo = get_repo(repo)
@@ -105,6 +106,8 @@ if __name__ == '__main__':
             except KeyError:
                 pass
             except json.decoder.JSONDecodeError:
+                pass
+            except ZeroDivisionError:
                 pass
     pretty_print(DATRESULT)
 
