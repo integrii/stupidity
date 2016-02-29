@@ -13,24 +13,24 @@ repo_url = 'https://api.github.com/repos/%s/%s'
 cache_file = 'cache.json'
 
 
-def write_progression(id, url):
+def write_progression(counter, url):
+    # if cache exists
+    try:
+        data = read_cache()
+    except:
+        data = {}
+    data['counter'] = counter
+    data['url'] = url
     with open(cache_file, 'w') as f:
-        # if cache exists
-        try:
-            data = read_cache()
-        except:
-            data = {}
-        data['id'] = id
-        data['url'] = url
         json.dump(data, f)
 
 def write_result(result):
+    try:
+        data = read_cache()
+    except:
+        data = {}
+    data['result'] = result
     with open(cache_file, 'w') as f:
-        try:
-            data = read_cache()
-        except:
-            data = {}
-        data['result'] = result
         json.dump(data, f)
 
 def read_cache():
@@ -54,9 +54,9 @@ def iter_seq(iterable):
     elif isinstance(iterable, dict):
         return list(iterable.items())
 
-def get_all(url, total=float('inf')):
-    counter = 0
+def get_all(url, total=float('inf'), beg=0):
     next_url = url
+    counter = 0
     # while there is a next page and #elems is < total
     while (next_url != None and counter < total):
         r = request_to_github(next_url)
@@ -70,8 +70,25 @@ def get_all(url, total=float('inf')):
         for elem in iter_seq(res):
             if counter >= total:
                 break
-            yield elem
+            if counter > beg:
+                yield elem, counter, url
             counter += 1
+
+def get_all_repo(default_url, total=float('inf')):
+    try:
+        data = read_cache()
+        url = data['url']
+        counter = data['counter']
+    except:
+        url = default_url
+        counter = 0
+    for repo, counter, url in get_all(url, total, counter):
+        yield repo
+        write_progression(counter, url)
+
+def get_all_elem(url):
+    for repo, counter, url in get_all(url):
+        yield repo
 
 def get_repo(repo):
     user, repo = repo['full_name'].split('/')
@@ -84,10 +101,10 @@ def get_stargazers(repo):
     return repo['stargazers_count']
 
 def get_contributors(repo):
-    return len(list(get_all(repo['contributors_url'])))
+    return len(list(get_all_elem(repo['contributors_url'])))
 
 def get_languages(repo):
-    languages = list(get_all(repo['languages_url']))
+    languages = list(get_all_elem(repo['languages_url']))
     total = sum([x[1] for x in languages])
     return {l: n/total for l, n in languages}
 
@@ -121,7 +138,7 @@ if __name__ == '__main__':
         DATRESULT = defaultdict(lambda: [0,0], read_cache()['result'])
     except:
         DATRESULT = defaultdict(lambda: [0,0])
-    for repo in tqdm(get_all(repository_url, n)):
+    for repo in tqdm(get_all_repo(repository_url, n)):
         if not repo['fork']:
             try:
                 magic_repo(DATRESULT, repo)
