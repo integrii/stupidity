@@ -144,9 +144,9 @@ def iter_seq(iterable):
         return list(iterable.items())
 
 def pretty_print(res):
-    for lang, data in res.items():
-        if data[1] >= 5:
-            print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, lang, 10, data[0], 10, data[1]))
+    res2 = reversed(sorted([(k, v[0], v[1]) for k, v in res.items()], key=lambda x: x[1]))
+    for data in res2:
+        print("Language: %-*s Stupidity ratio: %-*f Number of projects: %-*d" % (20, data[0], 10, data[1], 10, data[2]))
 
 if __name__ == '__main__':
     try:
