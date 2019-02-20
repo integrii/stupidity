@@ -1,6 +1,6 @@
 # Goal
 
-This project samples repositories from github and use the equation described in http://ericgreer.info/github/funny/stupidity/2016/02/28/judging-the-stupidity-of-github-projects.html to measure the stupidity of users of each repo.
+This project samples repositories from github and use the equation described in https://ericgreer.info/post/a-better-flags-package-for-go/ to measure the stupidity of users of each repo.
 It then look for the languages of this repo and make an average of stupidity by language.
 So useful, or not.
 
